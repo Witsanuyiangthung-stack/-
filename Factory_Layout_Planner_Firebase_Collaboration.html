@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบออกแบบผังโรงงานแปรรูปอาหาร</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Kanit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Kanit', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            slate: {
+              750: '#26334d',
+              850: '#131c2e',
+              950: '#090d16',
+            },
+            factory: {
+              accent: '#f59e0b',
+              accentHover: '#d97706',
+              grid: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    canvas {
+      touch-action: none;
+      user-select: none;
+    }
+    .grid-bg {
+      background-size: 20px 20px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden select-none bg-slate-950 text-slate-100">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-amber-500/20">
+        <i class="fa-solid font-bold fa-industry"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-tight tracking-wide text-white flex items-center gap-2">
+          Food Factory Layout Planner
+          <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-normal">v3.1 Pro</span>
+        </h1>
+        <p class="text-xs text-slate-400">ระบบออกแบบผังโรงงานแปรรูปอาหารและเครื่องจักร</p>
+      </div>
+    </div>
+
+    <!-- Room Status & Presence Control -->
+    <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <div class="text-xs">
+          <span class="text-slate-400">ห้องออนไลน์:</span>
+          <span id="currentRoomDisplay" class="font-mono font-bold text-amber-400 ml-1">ROOM-MAIN</span>
+        </div>
+        <span class="text-slate-600">|</span>
+        <div class="text-xs flex items-center gap-1 text-emerald-400">
+          <i class="fa-solid fa-users text-xs"></i>
+          <span id="onlineCount">1 คน</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <button id="btnCopyCode" title="คัดลอกรหัสห้อง" class="px-2.5 py-1.5 text-xs rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <span class="hidden md:inline">รหัสห้อง</span>
+        </button>
+        <button id="btnCopyLink" title="คัดลอกลิงก์เชิญเพื่อน" class="px-2.5 py-1.5 text-xs rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-link text-blue-400"></i>
+          <span class="hidden md:inline">แชร์ลิงก์</span>
+        </button>
+        <button id="btnSwitchRoom" title="สลับ / สร้างห้องใหม่" class="px-3 py-1.5 text-xs rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold transition flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-door-open"></i>
+          <span>สลับห้อง</span>
+        </button>
+      </div>
+
+      <div class="h-6 w-px bg-slate-800 hidden lg:block"></div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="btnInventoryModal" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie text-indigo-400"></i>
+          <span class="hidden xl:inline">สรุปพื้นที่</span>
+        </button>
+        <button id="btnExportPNG" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-file-image text-emerald-400"></i>
+          <span class="hidden xl:inline">ส่งออก PNG</span>
+        </button>
+        <div class="relative group">
+          <button class="px-2.5 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div class="absolute right-0 mt-1 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 hidden group-hover:block z-50">
+            <button id="btnExportJSON" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-download text-amber-400"></i> บันทึกไฟล์ JSON
+            </button>
+            <label class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-upload text-blue-400"></i> โหลดไฟล์ JSON
+              <input type="file" id="inputImportJSON" accept=".json" class="hidden">
+            </label>
+            <hr class="border-slate-700 my-1">
+            <button id="btnClearCanvas" class="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+              <i class="fa-solid fa-trash-can"></i> ล้างผังทั้งหมด
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Area -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <aside id="leftSidebar" class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 shrink-0 z-20">
+      <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+        <span class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-cubes text-amber-400"></i> คลังอุปกรณ์และเครื่องจักร
+        </span>
+        <button id="btnCreateCustomMachine" class="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 flex items-center gap-1 transition">
+          <i class="fa-solid fa-plus"></i> สร้างใหม่
+        </button>
+      </div>
+
+      <div class="p-3 border-b border-slate-800">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          <input type="text" id="librarySearch" placeholder="ค้นหาโซน / เครื่องจักร..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50">
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3 space-y-4" id="libraryContainer"></div>
+
+      <button id="toggleLeftSidebar" class="p-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 rounded-r-lg absolute top-1/2 -right-6 z-30 focus:outline-none shadow">
+        <i class="fa-solid fa-chevron-left text-xs" id="leftSidebarIcon"></i>
+      </button>
+    </aside>
+
+    <main class="flex-1 flex flex-col relative bg-slate-950 overflow-hidden">
+      <!-- Toolbar Controls with Directional Arrows & Unlimited Zoom -->
+      <div class="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-2xl shadow-2xl">
+        
+        <!-- Navigation Arrow D-Pad Controls -->
+        <div class="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+          <button id="btnPanLeft" title="เลื่อนไปทางซ้าย" class="w-7 h-7 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-amber-400 text-xs transition flex items-center justify-center">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="flex flex-col gap-0.5">
+            <button id="btnPanUp" title="เลื่อนขึ้นด้านบน" class="w-6 h-3 rounded hover:bg-slate-700 text-slate-300 hover:text-amber-400 text-[9px] transition flex items-center justify-center">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <button id="btnPanDown" title="เลื่อนลงด้านล่าง" class="w-6 h-3 rounded hover:bg-slate-700 text-slate-300 hover:text-amber-400 text-[9px] transition flex items-center justify-center">
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
+          </div>
+          <button id="btnPanRight" title="เลื่อนไปทางขวา" class="w-7 h-7 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-amber-400 text-xs transition flex items-center justify-center">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="h-4 w-px bg-slate-800"></div>
+
+        <div class="flex items-center gap-1 px-2 py-1 bg-slate-800/80 rounded-xl border border-slate-700 text-xs">
+          <i class="fa-solid fa-border-all text-slate-400"></i>
+          <span class="text-slate-400 text-[11px] hidden sm:inline">สแนป:</span>
+          <select id="gridSnapSelect" class="bg-transparent text-amber-400 font-medium focus:outline-none text-xs cursor-pointer">
+            <option value="0.5" class="bg-slate-900 text-slate-200">0.5 เมตร</option>
+            <option value="1.0" class="bg-slate-900 text-slate-200" selected>1.0 เมตร</option>
+            <option value="5.0" class="bg-slate-900 text-slate-200">5.0 เมตร</option>
+            <option value="0" class="bg-slate-900 text-slate-200">ปิดการสแนป</option>
+          </select>
+        </div>
+
+        <button id="btnToggleRulers" title="เปิด/ปิด เส้นไม้บรรทัด" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs transition">
+          <i class="fa-solid fa-ruler-combined"></i>
+        </button>
+
+        <div class="h-4 w-px bg-slate-800"></div>
+
+        <!-- Zoom Controls -->
+        <div class="flex items-center gap-1">
+          <button id="btnZoomOut" title="ซูมออก (ย่อดูพื้นที่กว้าง)" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <span id="zoomLevelDisplay" class="text-xs font-mono w-14 text-center text-slate-300 font-bold">100%</span>
+          <button id="btnZoomIn" title="ซูมเข้า (ขยายดูรายละเอียด)" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button id="btnResetView" title="รีเซ็ตมุมมองพอดีหน้าจอ" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs transition ml-1">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+        </div>
+
+        <div class="h-4 w-px bg-slate-800"></div>
+
+        <button id="btnShortcutsHelp" title="คำแนะนำการใช้งาน" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 text-xs transition">
+          <i class="fa-solid fa-keyboard"></i>
+        </button>
+      </div>
+
+      <!-- Custom Drawing Mode Bar -->
+      <div id="customDrawToolbar" class="hidden absolute top-16 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-amber-950/90 border border-amber-500/50 px-4 py-2 rounded-xl shadow-2xl text-xs text-amber-200">
+        <span class="flex items-center gap-2 font-semibold">
+          <i class="fa-solid fa-pen-ruler text-amber-400 animate-pulse"></i>
+          โหมดวาดรูปทรงผังโรงงาน: คลิกจุดบน Canvas เพื่อกำหนดมุมผังโรงงาน
+        </span>
+        <div class="flex items-center gap-2">
+          <button id="btnCustomDrawFinish" class="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-lg transition">
+            เสร็จสิ้นการวาด
+          </button>
+          <button id="btnCustomDrawUndo" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition">
+            ลบจุดล่าสุด
+          </button>
+          <button id="btnCustomDrawClear" class="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg transition">
+            ล้างจุดทั้งหมด
+          </button>
+        </div>
+      </div>
+
+      <div id="canvasContainer" class="flex-1 w-full h-full relative grid-bg cursor-grab active:cursor-grabbing">
+        <canvas id="factoryCanvas" class="w-full h-full block"></canvas>
+      </div>
+
+      <div class="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+        <div class="bg-slate-900/90 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-400 pointer-events-auto flex items-center gap-3 shadow-lg">
+          <span><i class="fa-solid fa-crosshairs text-amber-400 mr-1"></i> X: <strong id="cursorX" class="text-slate-200 font-mono">0.0</strong>m , Y: <strong id="cursorY" class="text-slate-200 font-mono">0.0</strong>m</span>
+          <span class="text-slate-700">|</span>
+          <span>จำนวนรายการในผัง: <strong id="totalMachineCount" class="text-amber-400 font-mono">0</strong> ชิ้น</span>
+        </div>
+
+        <div id="keyboardHint" class="hidden md:flex bg-slate-900/90 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 pointer-events-auto items-center gap-3 shadow-lg">
+          <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono border border-slate-700">ปุ่มลูกศร</kbd> เลื่อน Canvas</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono border border-slate-700">R</kbd> หมุน 90°</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono border border-slate-700">Ctrl+D</kbd> คัดลอก</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono border border-slate-700">Del</kbd> ลบวัตถุ</span>
+        </div>
+      </div>
+    </main>
+
+    <aside id="rightSidebar" class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col transition-all duration-300 shrink-0 z-20">
+      <button id="toggleRightSidebar" class="p-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 rounded-l-lg absolute top-1/2 -left-6 z-30 focus:outline-none shadow">
+        <i class="fa-solid fa-chevron-right text-xs" id="rightSidebarIcon"></i>
+      </button>
+
+      <div class="flex border-b border-slate-800 bg-slate-950/50">
+        <button id="tabInspector" class="flex-1 py-3 text-xs font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-sliders"></i> รายการที่เลือก
+        </button>
+        <button id="tabFactorySetup" class="flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-warehouse"></i> คุณสมบัติโรงงาน
+        </button>
+      </div>
+
+      <div id="inspectorTabContent" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div id="noSelectionMessage" class="text-center py-12 text-slate-500">
+          <i class="fa-solid fa-hand-pointer text-3xl mb-3 block text-slate-600"></i>
+          <p class="text-xs">คลิกเลือกเครื่องจักรหรือโซนใน Canvas<br>เพื่อปรับแต่งคุณสมบัติ ขนาด และมุมหมุน</p>
+        </div>
+
+        <div id="inspectorForm" class="hidden space-y-4">
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ชื่อเครื่องจักร / โซน</label>
+            <input type="text" id="propLabel" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-amber-500 focus:outline-none">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ตำแหน่ง X (m)</label>
+              <input type="number" step="0.1" id="propX" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none">
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ตำแหน่ง Y (m)</label>
+              <input type="number" step="0.1" id="propY" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ความกว้าง W (m)</label>
+              <input type="number" step="0.1" min="0.5" id="propW" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none">
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ความยาว L (m)</label>
+              <input type="number" step="0.1" min="0.5" id="propL" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">มุมหมุน (Degrees)</label>
+              <span id="propAngleDisplay" class="text-xs font-mono text-amber-400 font-bold">0°</span>
+            </div>
+            <input type="range" id="propRotationSlider" min="0" max="360" step="5" value="0" class="w-full accent-amber-500 cursor-pointer">
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">สีประจำเส้น / พื้นหลัง</label>
+            <input type="color" id="propColor" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent">
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">ลำดับการแสดงผล (Layer)</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnBringForward" class="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-arrow-up"></i> ย้ายขึ้นข้างหน้า
+              </button>
+              <button id="btnSendBackward" class="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-arrow-down"></i> ย้ายไปข้างหลัง
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button id="btnDuplicateObject" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-clone text-amber-400"></i> คัดลอก
+            </button>
+            <button id="btnDeleteObject" class="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-trash-can"></i> ลบรายการ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="factorySetupTabContent" class="flex-1 overflow-y-auto p-4 space-y-4 hidden">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider">ขนาดและรูปทรงโรงงาน</h3>
+          
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">ความกว้างรวม (เมตร - รองรับถึงกิโลเมตร)</label>
+            <input type="number" min="1" max="10000" id="factoryWidthInput" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-amber-500 focus:outline-none font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">ความยาวรวม (เมตร - รองรับถึงกิโลเมตร)</label>
+            <input type="number" min="1" max="10000" id="factoryLengthInput" value="200" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-amber-500 focus:outline-none font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">รูปทรงอาคารโรงงาน</label>
+            <select id="factoryShapeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-amber-500 focus:outline-none">
+              <option value="rectangle">สี่เหลี่ยมผืนผ้า (Standard Rectangle)</option>
+              <option value="l-shape">รูปตัว L (L-Shape Building)</option>
+              <option value="u-shape">รูปตัว U (U-Shape Building)</option>
+              <option value="circle">รูปวงกลม / โค้งรี (Circle / Oval Building)</option>
+              <option value="custom">กำหนดรูปทรงเองโดยการวาด (Custom Polygon)</option>
+            </select>
+          </div>
+
+          <div id="customShapeControlGroup" class="hidden pt-2 border-t border-slate-800 space-y-2">
+            <button id="btnStartDrawCustom" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-pen-ruler"></i> เริ่มวาดรูปทรงโรงงานบน Canvas
+            </button>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              คลิกบน Canvas เพื่อเพิ่มจุดมุมผังโรงงาน เมื่อวาดเสร็จให้กด "เสร็จสิ้นการวาด"
+            </p>
+          </div>
+
+          <button id="btnApplyFactorySetup" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition shadow mt-2">
+            <i class="fa-solid fa-check mr-1"></i> อัปเดตขนาดและรูปทรงโรงงาน
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Modal Custom Machine -->
+  <div id="modalCustomMachine" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-square-plus"></i> สร้างเครื่องจักร / อุปกรณ์ใหม่
+        </h3>
+        <button id="btnCloseCustomMachineModal" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">ชื่อเครื่องจักร / อุปกรณ์</label>
+          <input type="text" id="customName" placeholder="เช่น เครื่องตัดเลเซอร์ CNC 5 แกน" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">หมวดหมู่</label>
+            <select id="customCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none">
+              <option value="food">แปรรูปอาหาร</option>
+              <option value="production">เครื่องผลิตทั่วไป</option>
+              <option value="logistics">ขนส่ง / คลังสินค้า</option>
+              <option value="safety">ความปลอดภัย / ยูทิลิตี้</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">ไอคอน FontAwesome</label>
+            <input type="text" id="customIcon" placeholder="fa-gear" value="fa-gear" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">ความกว้าง W (เมตร)</label>
+            <input type="number" step="0.5" min="0.5" id="customW" value="3.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">ความยาว L (เมตร)</label>
+            <input type="number" step="0.5" min="0.5" id="customL" value="2.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">สีประจำเครื่องจักร</label>
+          <div class="flex items-center gap-3">
+            <input type="color" id="customColor" value="#3b82f6" class="w-10 h-10 rounded border-0 bg-transparent cursor-pointer">
+            <span class="text-slate-500 text-[11px]">เลือกสีเพื่อแยกประเภทเครื่องจักรบน Canvas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+        <button id="btnCancelCustomMachine" class="px-4 py-2 text-xs text-slate-400 hover:text-slate-200">ยกเลิก</button>
+        <button id="btnSaveCustomMachine" class="px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl transition shadow">
+          สร้างและเพิ่มลงคลัง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Room -->
+  <div id="modalRoom" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-door-open"></i> ระบบห้องร่วมมือออกแบบเรียลไทม์
+        </h3>
+        <button id="btnCloseRoomModal" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <label class="block font-semibold text-slate-300">เข้าร่วมห้องเดิมด้วยรหัสห้อง (Room Code)</label>
+          <div class="flex gap-2">
+            <input type="text" id="inputJoinRoomCode" placeholder="เช่น ROOM-8831" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:border-amber-500 focus:outline-none uppercase">
+            <button id="btnSubmitJoinRoom" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition">
+              เข้าร่วม
+            </button>
+          </div>
+        </div>
+
+        <div class="relative text-center my-2">
+          <hr class="border-slate-800">
+          <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-3 text-[11px] text-slate-500">หรือ</span>
+        </div>
+
+        <button id="btnCreateNewRoom" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-square-plus"></i> สร้างห้องออกแบบใหม่ (Auto-Generate Code)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Inventory Summary -->
+  <div id="modalInventory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-indigo-400 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie"></i> สรุปรายการเครื่องจักรและพื้นที่ใช้สอย
+        </h3>
+        <button id="btnCloseInventoryModal" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+          <span class="text-[11px] text-slate-400 block">พื้นที่โรงงานรวม</span>
+          <span id="summaryTotalFactoryArea" class="text-base font-bold font-mono text-slate-100">600 m²</span>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+          <span class="text-[11px] text-slate-400 block">พื้นที่วางเครื่องจักร/โซน</span>
+          <span id="summaryUsedArea" class="text-base font-bold font-mono text-amber-400">0 m²</span>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+          <span class="text-[11px] text-slate-400 block">อัตราส่วนใช้พื้นที่</span>
+          <span id="summaryOccupancyRate" class="text-base font-bold font-mono text-emerald-400">0 %</span>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto border border-slate-800 rounded-xl">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] sticky top-0">
+            <tr>
+              <th class="px-4 py-2.5">รายการ</th>
+              <th class="px-4 py-2.5">ขนาด (W x L)</th>
+              <th class="px-4 py-2.5 text-center">จำนวน (ชิ้น)</th>
+              <th class="px-4 py-2.5 text-right">พื้นที่รวม (m²)</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody" class="divide-y divide-slate-800 text-slate-300 font-mono"></tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-end border-t border-slate-800 pt-3">
+        <button id="btnCloseInventoryModalBottom" class="px-4 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Firebase JS SDK Imports -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpxomN8HZb4uv6DOJla6lA_DzL_KwuQQE",
+      authDomain: "saku-52c16.firebaseapp.com",
+      projectId: "saku-52c16",
+      storageBucket: "saku-52c16.firebasestorage.app",
+      messagingSenderId: "75778537786",
+      appId: "1:75778537786:web:c3dfaeaf6fc49b8923b803",
+      measurementId: "G-8JRQZ2PRXY"
+    };
+
+    let app, auth, db;
+    let currentUser = null;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    } catch (e) {
+      console.warn("Firebase initialization failed.", e);
+    }
+
+    const defaultPresetLibrary = [
+      {
+        categoryName: "🔲 โซนพื้นที่โรงงาน (เส้นประย่อขยายได้)",
+        items: [
+          { id: "zone_storage", label: "โซนจัดเก็บสินค้า / วัตถุดิบ", category: "zone", isZone: true, width: 8.0, length: 6.0, color: "#10b981", icon: "fa-boxes-stacked" },
+          { id: "zone_process", label: "โซนแปรรูปและผลิต", category: "zone", isZone: true, width: 10.0, length: 8.0, color: "#f59e0b", icon: "fa-gears" },
+          { id: "zone_packing", label: "โซนแพ็คบรรจุภัณฑ์", category: "zone", isZone: true, width: 6.0, length: 5.0, color: "#06b6d4", icon: "fa-box-open" },
+          { id: "zone_prep", label: "โซนเตรียมวัตถุดิบ", category: "zone", isZone: true, width: 6.0, length: 4.0, color: "#a855f7", icon: "fa-utensils" },
+          { id: "zone_cleanroom", label: "โซนห้องสะอาด (Clean Room)", category: "zone", isZone: true, width: 8.0, length: 6.0, color: "#3b82f6", icon: "fa-pump-medical" }
+        ]
+      },
+      {
+        categoryName: "🎃 เครื่องจักรจากไฟล์ PDF (โรงงานผงฟักทอง)",
+        items: [
+          { id: "pdf_grinder", label: "เครื่องบด LDC สแตนเลส (4500 RPM)", category: "pdf_pumpkin", width: 0.5, length: 0.5, color: "#e11d48", icon: "fa-mortar-pestle" },
+          { id: "pdf_vcc05", label: "เครื่องซีลสุญญากาศ VCC05", category: "pdf_pumpkin", width: 0.4, length: 0.5, color: "#0284c7", icon: "fa-box" },
+          { id: "pdf_washer", label: "เครื่องล้างผักโอโซน SS-304 (120cm)", category: "pdf_pumpkin", width: 1.2, length: 0.9, color: "#0d9488", icon: "fa-soap" },
+          { id: "pdf_prep_table", label: "โต๊ะเตรียมอาหารสแตนเลส 304", category: "pdf_pumpkin", width: 1.1, length: 0.7, color: "#64748b", icon: "fa-table" },
+          { id: "pdf_scale", label: "เครื่องชั่งดิจิตอล OHAUS 2 ตำแหน่ง", category: "pdf_pumpkin", width: 0.2, length: 0.4, color: "#8b5cf6", icon: "fa-scale-balanced" },
+          { id: "pdf_shelf", label: "ชั้นวางสินค้าสแตนเลส 304 5 ชั้น", category: "pdf_pumpkin", width: 1.1, length: 0.5, color: "#16a34a", icon: "fa-boxes-stacked" },
+          { id: "pdf_tray_dryer", label: "ตู้อบถาด Droplet Tray Dryer", category: "pdf_pumpkin", width: 1.9, length: 1.0, color: "#d97706", icon: "fa-fire" },
+          { id: "pdf_freezer", label: "ตู้แช่เย็น/แช่แข็ง Dual X22", category: "pdf_pumpkin", width: 1.4, length: 0.8, color: "#2563eb", icon: "fa-snowflake" },
+          { id: "pdf_door", label: "ประตูบานเลื่อนห้องเย็น", category: "pdf_pumpkin", width: 1.0, length: 0.45, color: "#475569", icon: "fa-door-closed" },
+          { id: "pdf_electric_table", label: "ตู้โต๊ะสแตนเลสไฟฟ้า", category: "pdf_pumpkin", width: 1.4, length: 0.4, color: "#475569", icon: "fa-kitchen-set" },
+          { id: "pdf_dehumidifier", label: "เครื่องดูดความชื้นอุตสาหกรรม", category: "pdf_pumpkin", width: 1.34, length: 1.34, color: "#0284c7", icon: "fa-wind" },
+          { id: "pdf_fan", label: "พัดลมระบายอุตสาหกรรม Orton", category: "pdf_pumpkin", width: 1.33, length: 1.38, color: "#64748b", icon: "fa-fan" },
+          { id: "pdf_sink", label: "อ่างล้างมือแบบเท้าเหยียบ", category: "pdf_pumpkin", width: 0.4, length: 0.48, color: "#06b6d4", icon: "fa-faucet" },
+          { id: "pdf_curtain", label: "ม่านริ้วพลาสติกกันแมลง", category: "pdf_pumpkin", width: 1.05, length: 0.1, color: "#a855f7", icon: "fa-grip-lines-vertical" }
+        ]
+      },
+      {
+        categoryName: "🍱 เครื่องจักรแปรรูปอาหาร (Food Processing)",
+        items: [
+          { id: "retort_machine", label: "เครื่องรีทอตฆ่าเชื้อแรงดันสูง (Retort)", category: "food", width: 2.5, length: 1.5, color: "#dc2626", icon: "fa-temperature-arrow-up" },
+          { id: "convection_dryer", label: "ตู้อบลมร้อนอุตสาหกรรม (Drying Oven)", category: "food", width: 3.0, length: 2.0, color: "#ea580c", icon: "fa-fire-burner" },
+          { id: "ind_vacuum_pack", label: "เครื่องแพ็คสูญญากาศอุตสาหกรรม", category: "food", width: 2.0, length: 1.2, color: "#0284c7", icon: "fa-box-tissue" },
+          { id: "spray_dryer", label: "เครื่องทำแห้ง Spray / Freeze Dryer", category: "food", width: 3.5, length: 2.5, color: "#7c3aed", icon: "fa-atom" },
+          { id: "blanching_machine", label: "เครื่องลวกผักและต้มฆ่าเชื้อ", category: "food", width: 2.5, length: 1.2, color: "#16a34a", icon: "fa-vial-circle-check" },
+          { id: "food_slicer", label: "เครื่องสไลซ์และหั่นวัตถุดิบ", category: "food", width: 1.5, length: 1.0, color: "#e11d48", icon: "fa-scissors" },
+          { id: "food_mixer", label: "เครื่องผสมอาหารสแตนเลส", category: "food", width: 1.5, length: 1.2, color: "#d97706", icon: "fa-blender" }
+        ]
+      },
+      {
+        categoryName: "🏭 เครื่องจักรทั่วไป & ขนส่ง",
+        items: [
+          { id: "cnc_milling", label: "เครื่องตัด CNC Milling", category: "production", width: 3.0, length: 2.0, color: "#3b82f6", icon: "fa-gears" },
+          { id: "conveyor_belt", label: "สายพานลำเลียงสินค้า", category: "logistics", width: 4.0, length: 1.0, color: "#f59e0b", icon: "fa-arrows-left-right" },
+          { id: "storage_rack", label: "ชั้นวางพาเลททรงสูง", category: "logistics", width: 4.0, length: 1.5, color: "#10b981", icon: "fa-boxes-stacked" },
+          { id: "forklift_bay", label: "จุดจอดรถโฟล์คลิฟท์", category: "logistics", width: 3.0, length: 2.5, color: "#eab308", icon: "fa-truck-ramp-box" }
+        ]
+      }
+    ];
+
+    let currentRoomId = "ROOM-MAIN";
+    let factoryConfig = { width: 100, length: 200, shape: "rectangle", customPoints: [] };
+    let machines = [];
+    let selectedMachineId = null;
+    let customPresets = [];
+
+    let isDrawingCustomFactory = false;
+
+    let zoomLevel = 0.3; // Default zoom level for large views
+    let panX = 40;
+    let panY = 40;
+    let gridSnapMeters = 1.0;
+    let showRulers = true;
+
+    let isPanning = false;
+    let isDraggingMachine = false;
+    let isRotatingMachine = false;
+    let isResizingZone = false;
+
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let initialPointerX = 0;
+    let initialPointerY = 0;
+    let spaceBarPressed = false;
+    let activeAlignmentGuides = [];
+
+    let syncTimeout = null;
+    let isRemoteUpdate = false;
+
+    const canvas = document.getElementById('factoryCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasContainer = document.getElementById('canvasContainer');
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const bgColors = {
+        info: 'bg-slate-800 text-slate-100 border-slate-700',
+        success: 'bg-emerald-950 text-emerald-200 border-emerald-800',
+        warning: 'bg-amber-950 text-amber-200 border-amber-800',
+        error: 'bg-rose-950 text-rose-200 border-rose-800'
+      };
+
+      const icons = {
+        info: 'fa-circle-info text-blue-400',
+        success: 'fa-circle-check text-emerald-400',
+        warning: 'fa-triangle-exclamation text-amber-400',
+        error: 'fa-circle-xmark text-rose-400'
+      };
+
+      toast.className = `px-4 py-2.5 rounded-xl border shadow-xl text-xs font-medium flex items-center gap-2.5 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto ${bgColors[type] || bgColors.info}`;
+      toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function getRoomDocRef(roomId) {
+      if (!db) return null;
+      return doc(db, 'factory_rooms', roomId);
+    }
+
+    async function initAuthAndRoom() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoom = urlParams.get('room');
+      if (urlRoom) {
+        currentRoomId = urlRoom.toUpperCase();
+      }
+
+      document.getElementById('currentRoomDisplay').textContent = currentRoomId;
+      if (!auth) {
+        listenToRoomChanges(currentRoomId);
+        return;
+      }
+
+      onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+        listenToRoomChanges(currentRoomId);
+      });
+
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.warn("Auth error:", err);
+        showToast("กรุณาเปิด Anonymous Auth ใน Firebase Console", "warning");
+        listenToRoomChanges(currentRoomId);
+      }
+    }
+
+    let roomUnsubscribe = null;
+
+    function listenToRoomChanges(roomId) {
+      if (roomUnsubscribe) roomUnsubscribe();
+      const roomRef = getRoomDocRef(roomId);
+      if (!roomRef) return;
+
+      roomUnsubscribe = onSnapshot(roomRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          isRemoteUpdate = true;
+          if (data.factory) {
+            factoryConfig = data.factory;
+            document.getElementById('factoryWidthInput').value = factoryConfig.width;
+            document.getElementById('factoryLengthInput').value = factoryConfig.length;
+            document.getElementById('factoryShapeInput').value = factoryConfig.shape || 'rectangle';
+            toggleCustomShapeControls(factoryConfig.shape === 'custom');
+          }
+          if (data.machines) {
+            machines = data.machines;
+          }
+          if (data.activeUsers) {
+            document.getElementById('onlineCount').textContent = `${data.activeUsers} คน`;
+          }
+          renderCanvas();
+          updateInspectorPanel();
+          updateInventorySummary();
+          isRemoteUpdate = false;
+        } else {
+          saveRoomStateToFirebase();
+        }
+      }, (error) => {
+        console.error("Firestore Listen Error:", error);
+      });
+    }
+
+    function saveRoomStateToFirebase() {
+      if (!db || isRemoteUpdate) return;
+      
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(async () => {
+        const roomRef = getRoomDocRef(currentRoomId);
+        if (!roomRef) return;
+
+        try {
+          await setDoc(roomRef, {
+            roomId: currentRoomId,
+            updatedAt: Date.now(),
+            factory: factoryConfig,
+            machines: machines,
+            activeUsers: Math.floor(Math.random() * 2) + 1
+          }, { merge: true });
+        } catch (err) {
+          console.error("Error pushing room update:", err);
+        }
+      }, 200);
+    }
+
+    function resizeCanvas() {
+      const rect = canvasContainer.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      renderCanvas();
+    }
+
+    function metersToPixels(m) { return m * 30 * zoomLevel; }
+    function pixelsToMeters(px) { return px / (30 * zoomLevel); }
+
+    function renderCanvas() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(panX, panY);
+
+      const fwPx = metersToPixels(factoryConfig.width);
+      const flPx = metersToPixels(factoryConfig.length);
+
+      drawFactoryFloor(fwPx, flPx);
+      drawGrid(fwPx, flPx);
+
+      const sortedMachines = [...machines].sort((a, b) => (a.layer || 0) - (b.layer || 0));
+      sortedMachines.forEach(machine => drawMachine(machine));
+
+      if (isDrawingCustomFactory) {
+        drawCustomFactoryEditingPoints();
+      }
+
+      drawSmartGuides();
+      if (showRulers) drawRulers(fwPx, flPx);
+
+      ctx.restore();
+      document.getElementById('totalMachineCount').textContent = machines.length;
+    }
+
+    function drawFactoryFloor(fwPx, flPx) {
+      ctx.fillStyle = "#0f172a";
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = Math.max(1.5, 3.5 * zoomLevel);
+
+      ctx.beginPath();
+      if (factoryConfig.shape === "rectangle") {
+        ctx.rect(0, 0, fwPx, flPx);
+      } else if (factoryConfig.shape === "l-shape") {
+        ctx.moveTo(0, 0); ctx.lineTo(fwPx, 0); ctx.lineTo(fwPx, flPx * 0.5);
+        ctx.lineTo(fwPx * 0.5, flPx * 0.5); ctx.lineTo(fwPx * 0.5, flPx); ctx.lineTo(0, flPx);
+        ctx.closePath();
+      } else if (factoryConfig.shape === "u-shape") {
+        ctx.moveTo(0, 0); ctx.lineTo(fwPx * 0.3, 0); ctx.lineTo(fwPx * 0.3, flPx * 0.5);
+        ctx.lineTo(fwPx * 0.7, flPx * 0.5); ctx.lineTo(fwPx * 0.7, 0); ctx.lineTo(fwPx, 0);
+        ctx.lineTo(fwPx, flPx); ctx.lineTo(0, flPx);
+        ctx.closePath();
+      } else if (factoryConfig.shape === "circle") {
+        ctx.ellipse(fwPx / 2, flPx / 2, fwPx / 2, flPx / 2, 0, 0, Math.PI * 2);
+      } else if (factoryConfig.shape === "custom" && factoryConfig.customPoints && factoryConfig.customPoints.length >= 3) {
+        const pts = factoryConfig.customPoints;
+        ctx.moveTo(metersToPixels(pts[0].x), metersToPixels(pts[0].y));
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(metersToPixels(pts[i].x), metersToPixels(pts[i].y));
+        }
+        ctx.closePath();
+      } else {
+        ctx.rect(0, 0, fwPx, flPx);
+      }
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function drawCustomFactoryEditingPoints() {
+      const pts = factoryConfig.customPoints || [];
+      if (pts.length === 0) return;
+
+      ctx.save();
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+
+      ctx.beginPath();
+      ctx.moveTo(metersToPixels(pts[0].x), metersToPixels(pts[0].y));
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(metersToPixels(pts[i].x), metersToPixels(pts[i].y));
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      pts.forEach((pt, idx) => {
+        const px = metersToPixels(pt.x);
+        const py = metersToPixels(pt.y);
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#f59e0b";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 11px Kanit, sans-serif";
+        ctx.fillText(`${idx + 1}`, px + 10, py - 10);
+      });
+      ctx.restore();
+    }
+
+    function drawGrid(fwPx, flPx) {
+      const stepPx = metersToPixels(1.0);
+      
+      // Smart performance optimization for kilometer-scale factories
+      if (stepPx >= 4) {
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(51, 65, 85, 0.4)";
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= fwPx; x += stepPx) { ctx.moveTo(x, 0); ctx.lineTo(x, flPx); }
+        for (let y = 0; y <= flPx; y += stepPx) { ctx.moveTo(0, y); ctx.lineTo(fwPx, y); }
+        ctx.stroke();
+      }
+
+      const step5Px = metersToPixels(5.0);
+      if (step5Px >= 3) {
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(245, 158, 11, 0.25)";
+        ctx.lineWidth = 1.2;
+        for (let x = 0; x <= fwPx; x += step5Px) { ctx.moveTo(x, 0); ctx.lineTo(x, flPx); }
+        for (let y = 0; y <= flPx; y += step5Px) { ctx.moveTo(0, y); ctx.lineTo(fwPx, y); }
+        ctx.stroke();
+      }
+    }
+
+    function drawMachine(m) {
+      const xPx = metersToPixels(m.x);
+      const yPx = metersToPixels(m.y);
+      const wPx = metersToPixels(m.width);
+      const lPx = metersToPixels(m.length);
+      const isSelected = m.id === selectedMachineId;
+
+      ctx.save();
+      ctx.translate(xPx + wPx / 2, yPx + lPx / 2);
+      ctx.rotate((m.rotation || 0) * Math.PI / 180);
+
+      if (m.isZone) {
+        // Render dashed boundary zone
+        ctx.fillStyle = (m.color || "#10b981") + "22";
+        ctx.fillRect(-wPx / 2, -lPx / 2, wPx, lPx);
+
+        ctx.strokeStyle = m.color || "#10b981";
+        ctx.lineWidth = isSelected ? 3.5 : 2.5;
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(-wPx / 2, -lPx / 2, wPx, lPx);
+        ctx.setLineDash([]);
+
+        // Zone Badge
+        ctx.fillStyle = m.color || "#10b981";
+        ctx.beginPath();
+        ctx.roundRect(-wPx / 2 + 4, -lPx / 2 + 4, Math.min(wPx - 8, 180), 24, 4);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.max(10, Math.min(13, 11 * zoomLevel))}px Kanit, sans-serif`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(m.label, -wPx / 2 + 10, -lPx / 2 + 16);
+
+        if (isSelected) {
+          // Resize handle bottom right
+          ctx.beginPath();
+          ctx.arc(wPx / 2, lPx / 2, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#f59e0b";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else {
+        // Render standard machinery
+        ctx.fillStyle = m.color || "#3b82f6";
+        ctx.beginPath();
+        ctx.roundRect(-wPx / 2, -lPx / 2, wPx, lPx, Math.max(2, 6 * zoomLevel));
+        ctx.fill();
+
+        ctx.strokeStyle = isSelected ? "#f59e0b" : "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = isSelected ? 3 : 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillRect(-wPx / 2, -lPx / 2, wPx, Math.max(2, 4 * zoomLevel));
+
+        if (wPx >= 12 && lPx >= 12) {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `${Math.max(9, Math.min(13, 11 * zoomLevel))}px Kanit, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(m.label, 0, 0);
+        }
+
+        if (isSelected) {
+          ctx.strokeStyle = "#f59e0b";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(-wPx / 2 - 4, -lPx / 2 - 4, wPx + 8, lPx + 8);
+          ctx.setLineDash([]);
+
+          ctx.beginPath();
+          ctx.arc(0, -lPx / 2 - 20, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#f59e0b";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(0, -lPx / 2 - 4);
+          ctx.lineTo(0, -lPx / 2 - 12);
+          ctx.strokeStyle = "#f59e0b";
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawSmartGuides() {
+      if (activeAlignmentGuides.length === 0) return;
+      ctx.save();
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+
+      activeAlignmentGuides.forEach(g => {
+        ctx.beginPath();
+        if (g.type === 'x') {
+          const xPx = metersToPixels(g.pos);
+          ctx.moveTo(xPx, 0); ctx.lineTo(xPx, metersToPixels(factoryConfig.length));
+        } else if (g.type === 'y') {
+          const yPx = metersToPixels(g.pos);
+          ctx.moveTo(0, yPx); ctx.lineTo(metersToPixels(factoryConfig.width), yPx);
+        }
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawRulers(fwPx, flPx) {
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "10px Inter, monospace";
+
+      const stepMeters = factoryConfig.width > 500 ? 50 : (factoryConfig.width > 100 ? 20 : 5);
+      for (let x = 0; x <= factoryConfig.width; x += stepMeters) {
+        ctx.fillText(`${x}m`, metersToPixels(x) - 6, -10);
+      }
+      for (let y = 0; y <= factoryConfig.length; y += stepMeters) {
+        ctx.fillText(`${y}m`, -35, metersToPixels(y) + 3);
+      }
+    }
+
+    function getPointerMeterPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: pixelsToMeters(e.clientX - rect.left - panX),
+        y: pixelsToMeters(e.clientY - rect.top - panY)
+      };
+    }
+
+    function findMachineAt(mX, mY) {
+      const sorted = [...machines].sort((a, b) => (b.layer || 0) - (a.layer || 0));
+      return sorted.find(m => mX >= m.x && mX <= (m.x + m.width) && mY >= m.y && mY <= (m.y + m.length));
+    }
+
+    function isOverRotationHandle(m, mX, mY) {
+      if (m.id !== selectedMachineId || m.isZone) return false;
+      const centerX = m.x + m.width / 2;
+      const centerY = m.y + m.length / 2;
+      const handleDistMeters = pixelsToMeters(20);
+      const angleRad = ((m.rotation || 0) - 90) * Math.PI / 180;
+      const handleX = centerX + (m.length / 2 + handleDistMeters) * Math.cos(angleRad);
+      const handleY = centerY + (m.length / 2 + handleDistMeters) * Math.sin(angleRad);
+
+      const dx = mX - handleX;
+      const dy = mY - handleY;
+      return Math.sqrt(dx * dx + dy * dy) <= pixelsToMeters(14);
+    }
+
+    function isOverZoneResizeHandle(m, mX, mY) {
+      if (m.id !== selectedMachineId || !m.isZone) return false;
+      const cornerX = m.x + m.width;
+      const cornerY = m.y + m.length;
+      const dx = mX - cornerX;
+      const dy = mY - cornerY;
+      return Math.sqrt(dx * dx + dy * dy) <= pixelsToMeters(14);
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      const pos = getPointerMeterPos(e);
+
+      if (isDrawingCustomFactory) {
+        if (!factoryConfig.customPoints) factoryConfig.customPoints = [];
+        let newX = pos.x;
+        let newY = pos.y;
+        if (gridSnapMeters > 0) {
+          newX = Math.round(newX / gridSnapMeters) * gridSnapMeters;
+          newY = Math.round(newY / gridSnapMeters) * gridSnapMeters;
+        }
+        factoryConfig.customPoints.push({ x: newX, y: newY });
+        renderCanvas();
+        return;
+      }
+
+      const selected = machines.find(m => m.id === selectedMachineId);
+      const isHandle = selected && (isOverRotationHandle(selected, pos.x, pos.y) || isOverZoneResizeHandle(selected, pos.x, pos.y));
+      
+      if (isHandle) {
+        if (isOverRotationHandle(selected, pos.x, pos.y)) isRotatingMachine = true;
+        if (isOverZoneResizeHandle(selected, pos.x, pos.y)) isResizingZone = true;
+        return;
+      }
+
+      const clickedMachine = findMachineAt(pos.x, pos.y);
+      if (clickedMachine) {
+        selectedMachineId = clickedMachine.id;
+        isDraggingMachine = true;
+        dragOffsetX = pos.x - clickedMachine.x;
+        dragOffsetY = pos.y - clickedMachine.y;
+      } else {
+        // Empty space clicked / touched -> Direct touch panning support for tablet
+        selectedMachineId = null;
+        isPanning = true;
+        initialPointerX = e.clientX - panX;
+        initialPointerY = e.clientY - panY;
+        canvasContainer.classList.add('cursor-grabbing');
+      }
+
+      updateInspectorPanel();
+      renderCanvas();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      const pos = getPointerMeterPos(e);
+      document.getElementById('cursorX').textContent = Math.max(0, pos.x).toFixed(1);
+      document.getElementById('cursorY').textContent = Math.max(0, pos.y).toFixed(1);
+
+      if (isPanning) {
+        panX = e.clientX - initialPointerX;
+        panY = e.clientY - initialPointerY;
+        renderCanvas();
+        return;
+      }
+
+      if (isResizingZone && selectedMachineId) {
+        const m = machines.find(m => m.id === selectedMachineId);
+        if (m) {
+          let newW = pos.x - m.x;
+          let newL = pos.y - m.y;
+          if (gridSnapMeters > 0) {
+            newW = Math.round(newW / gridSnapMeters) * gridSnapMeters;
+            newL = Math.round(newL / gridSnapMeters) * gridSnapMeters;
+          }
+          m.width = Math.max(1.0, newW);
+          m.length = Math.max(1.0, newL);
+          updateInspectorPanel();
+          updateInventorySummary();
+          renderCanvas();
+          saveRoomStateToFirebase();
+        }
+        return;
+      }
+
+      if (isRotatingMachine && selectedMachineId) {
+        const m = machines.find(m => m.id === selectedMachineId);
+        if (m) {
+          const rad = Math.atan2(pos.y - (m.y + m.length / 2), pos.x - (m.x + m.width / 2));
+          let deg = Math.round((rad * 180 / Math.PI) + 90);
+          if (deg < 0) deg += 360;
+          m.rotation = deg;
+          updateInspectorPanel();
+          renderCanvas();
+          saveRoomStateToFirebase();
+        }
+        return;
+      }
+
+      if (isDraggingMachine && selectedMachineId) {
+        const m = machines.find(m => m.id === selectedMachineId);
+        if (m) {
+          let newX = pos.x - dragOffsetX;
+          let newY = pos.y - dragOffsetY;
+
+          activeAlignmentGuides = [];
+          machines.forEach(other => {
+            if (other.id === m.id) return;
+            if (Math.abs(other.x - newX) < 0.2) { newX = other.x; activeAlignmentGuides.push({ type: 'x', pos: other.x }); }
+            if (Math.abs(other.y - newY) < 0.2) { newY = other.y; activeAlignmentGuides.push({ type: 'y', pos: other.y }); }
+          });
+
+          if (gridSnapMeters > 0 && activeAlignmentGuides.length === 0) {
+            newX = Math.round(newX / gridSnapMeters) * gridSnapMeters;
+            newY = Math.round(newY / gridSnapMeters) * gridSnapMeters;
+          }
+
+          m.x = Math.max(0, Math.min(factoryConfig.width - m.width, newX));
+          m.y = Math.max(0, Math.min(factoryConfig.length - m.length, newY));
+
+          updateInspectorPanel();
+          renderCanvas();
+          saveRoomStateToFirebase();
+        }
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      isPanning = false;
+      isDraggingMachine = false;
+      isRotatingMachine = false;
+      isResizingZone = false;
+      activeAlignmentGuides = [];
+      canvasContainer.classList.remove('cursor-grabbing');
+      renderCanvas();
+    });
+
+    // Uncapped Zoom Listener (Dynamic Zoom down to 1%)
+    canvasContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      zoomLevel = Math.max(0.01, Math.min(5.0, zoomLevel * zoomFactor));
+      zoomLevel = Math.round(zoomLevel * 1000) / 1000;
+      document.getElementById('zoomLevelDisplay').textContent = `${Math.round(zoomLevel * 100)}%`;
+      renderCanvas();
+    }, { passive: false });
+
+    // Directional Arrow Buttons Control
+    const PAN_NUDGE_PIXELS = 150;
+    document.getElementById('btnPanLeft').addEventListener('click', () => { panX += PAN_NUDGE_PIXELS; renderCanvas(); });
+    document.getElementById('btnPanRight').addEventListener('click', () => { panX -= PAN_NUDGE_PIXELS; renderCanvas(); });
+    document.getElementById('btnPanUp').addEventListener('click', () => { panY += PAN_NUDGE_PIXELS; renderCanvas(); });
+    document.getElementById('btnPanDown').addEventListener('click', () => { panY -= PAN_NUDGE_PIXELS; renderCanvas(); });
+
+    canvasContainer.addEventListener('dragover', (e) => e.preventDefault());
+    canvasContainer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const presetDataStr = e.dataTransfer.getData('text/plain');
+      if (!presetDataStr) return;
+
+      const preset = JSON.parse(presetDataStr);
+      const pos = getPointerMeterPos(e);
+
+      let newX = pos.x - preset.width / 2;
+      let newY = pos.y - preset.length / 2;
+
+      if (gridSnapMeters > 0) {
+        newX = Math.round(newX / gridSnapMeters) * gridSnapMeters;
+        newY = Math.round(newY / gridSnapMeters) * gridSnapMeters;
+      }
+
+      const newMachine = {
+        id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        label: preset.label,
+        category: preset.category,
+        isZone: !!preset.isZone,
+        width: preset.width,
+        length: preset.length,
+        x: Math.max(0, Math.min(factoryConfig.width - preset.width, newX)),
+        y: Math.max(0, Math.min(factoryConfig.length - preset.length, newY)),
+        rotation: 0,
+        color: preset.color || "#3b82f6",
+        layer: machines.length
+      };
+
+      machines.push(newMachine);
+      selectedMachineId = newMachine.id;
+
+      showToast(`เพิ่ม "${newMachine.label}" เรียบร้อย`, 'success');
+      updateInspectorPanel();
+      updateInventorySummary();
+      renderCanvas();
+      saveRoomStateToFirebase();
+    });
+
+    function renderLibrary() {
+      const container = document.getElementById('libraryContainer');
+      const searchQuery = document.getElementById('librarySearch').value.toLowerCase();
+      container.innerHTML = '';
+
+      const allCategories = [...defaultPresetLibrary];
+      if (customPresets.length > 0) {
+        allCategories.push({ categoryName: "⭐ เครื่องจักร Custom", items: customPresets });
+      }
+
+      allCategories.forEach(cat => {
+        const filtered = cat.items.filter(item => item.label.toLowerCase().includes(searchQuery));
+        if (filtered.length === 0) return;
+
+        const catBlock = document.createElement('div');
+        catBlock.className = "space-y-2";
+        catBlock.innerHTML = `<h4 class="text-xs font-semibold text-amber-400 uppercase tracking-wider">${cat.categoryName}</h4>`;
+
+        const itemsGrid = document.createElement('div');
+        itemsGrid.className = "grid grid-cols-1 gap-2";
+
+        filtered.forEach(item => {
+          const card = document.createElement('div');
+          card.draggable = true;
+          card.className = "p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl cursor-grab active:cursor-grabbing transition flex items-center justify-between group";
+          
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs text-white" style="background-color: ${item.color || '#3b82f6'}">
+                <i class="fa-solid ${item.icon || 'fa-cube'}"></i>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-200 group-hover:text-amber-400 transition">${item.label}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${item.width}m × ${item.length}m ${item.isZone ? '(โซนเส้นประ)' : ''}</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-grip-vertical text-slate-600 text-xs"></i>
+          `;
+
+          card.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify(item));
+          });
+
+          itemsGrid.appendChild(card);
+        });
+
+        catBlock.appendChild(itemsGrid);
+        container.appendChild(catBlock);
+      });
+    }
+
+    document.getElementById('librarySearch').addEventListener('input', renderLibrary);
+
+    function updateInspectorPanel() {
+      const selected = machines.find(m => m.id === selectedMachineId);
+      const noSelectMsg = document.getElementById('noSelectionMessage');
+      const form = document.getElementById('inspectorForm');
+
+      if (!selected) {
+        noSelectMsg.classList.remove('hidden');
+        form.classList.add('hidden');
+        return;
+      }
+
+      noSelectMsg.classList.add('hidden');
+      form.classList.remove('hidden');
+
+      document.getElementById('propLabel').value = selected.label;
+      document.getElementById('propX').value = selected.x;
+      document.getElementById('propY').value = selected.y;
+      document.getElementById('propW').value = selected.width;
+      document.getElementById('propL').value = selected.length;
+      document.getElementById('propRotationSlider').value = selected.rotation || 0;
+      document.getElementById('propAngleDisplay').textContent = `${selected.rotation || 0}°`;
+      document.getElementById('propColor').value = selected.color || '#3b82f6';
+    }
+
+    document.getElementById('propLabel').addEventListener('input', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.label = e.target.value; renderCanvas(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('propX').addEventListener('change', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.x = parseFloat(e.target.value) || 0; renderCanvas(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('propY').addEventListener('change', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.y = parseFloat(e.target.value) || 0; renderCanvas(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('propW').addEventListener('change', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.width = Math.max(0.5, parseFloat(e.target.value) || 1); renderCanvas(); updateInventorySummary(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('propL').addEventListener('change', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.length = Math.max(0.5, parseFloat(e.target.value) || 1); renderCanvas(); updateInventorySummary(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('propRotationSlider').addEventListener('input', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) {
+        m.rotation = parseInt(e.target.value);
+        document.getElementById('propAngleDisplay').textContent = `${m.rotation}°`;
+        renderCanvas();
+        saveRoomStateToFirebase();
+      }
+    });
+    document.getElementById('propColor').addEventListener('input', (e) => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.color = e.target.value; renderCanvas(); saveRoomStateToFirebase(); }
+    });
+
+    document.getElementById('btnBringForward').addEventListener('click', () => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.layer = (m.layer || 0) + 1; renderCanvas(); saveRoomStateToFirebase(); }
+    });
+    document.getElementById('btnSendBackward').addEventListener('click', () => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) { m.layer = Math.max(0, (m.layer || 0) - 1); renderCanvas(); saveRoomStateToFirebase(); }
+    });
+
+    document.getElementById('btnDuplicateObject').addEventListener('click', () => {
+      const m = machines.find(m => m.id === selectedMachineId);
+      if (m) {
+        const copy = {
+          ...m,
+          id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          x: Math.min(factoryConfig.width - m.width, m.x + 1.0),
+          y: Math.min(factoryConfig.length - m.length, m.y + 1.0),
+          label: `${m.label} (คัดลอก)`
+        };
+        machines.push(copy);
+        selectedMachineId = copy.id;
+        updateInspectorPanel();
+        updateInventorySummary();
+        renderCanvas();
+        saveRoomStateToFirebase();
+        showToast('คัดลอกรายการเรียบร้อย', 'success');
+      }
+    });
+
+    document.getElementById('btnDeleteObject').addEventListener('click', () => {
+      if (selectedMachineId) {
+        machines = machines.filter(m => m.id !== selectedMachineId);
+        selectedMachineId = null;
+        updateInspectorPanel();
+        updateInventorySummary();
+        renderCanvas();
+        saveRoomStateToFirebase();
+        showToast('ลบรายการเรียบร้อย', 'info');
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.code === 'Space') spaceBarPressed = true;
+      const m = machines.find(m => m.id === selectedMachineId);
+
+      // Keyboard Arrow Keys Navigation
+      if (e.key === 'ArrowLeft') { panX += PAN_NUDGE_PIXELS; renderCanvas(); }
+      if (e.key === 'ArrowRight') { panX -= PAN_NUDGE_PIXELS; renderCanvas(); }
+      if (e.key === 'ArrowUp') { panY += PAN_NUDGE_PIXELS; renderCanvas(); }
+      if (e.key === 'ArrowDown') { panY -= PAN_NUDGE_PIXELS; renderCanvas(); }
+
+      if (e.key.toLowerCase() === 'r' && m) {
+        m.rotation = ((m.rotation || 0) + 90) % 360;
+        updateInspectorPanel();
+        renderCanvas();
+        saveRoomStateToFirebase();
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && m) {
+        machines = machines.filter(item => item.id !== selectedMachineId);
+        selectedMachineId = null;
+        updateInspectorPanel();
+        updateInventorySummary();
+        renderCanvas();
+        saveRoomStateToFirebase();
+        showToast('ลบวัตถุเรียบร้อย', 'info');
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && m) {
+        e.preventDefault();
+        document.getElementById('btnDuplicateObject').click();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') spaceBarPressed = false;
+    });
+
+    function updateInventorySummary() {
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = '';
+
+      const factoryTotalArea = factoryConfig.width * factoryConfig.length;
+      let totalUsedArea = 0;
+
+      const summaryMap = {};
+      machines.forEach(m => {
+        const key = `${m.label}_${m.width}x${m.length}`;
+        const area = m.width * m.length;
+        totalUsedArea += area;
+
+        if (!summaryMap[key]) {
+          summaryMap[key] = { label: m.label, width: m.width, length: m.length, count: 0, totalArea: 0, isZone: m.isZone };
+        }
+        summaryMap[key].count += 1;
+        summaryMap[key].totalArea += area;
+      });
+
+      Object.values(summaryMap).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-2 font-medium text-slate-200">${item.label} ${item.isZone ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">โซน</span>' : ''}</td>
+          <td class="px-4 py-2 text-slate-400">${item.width}m × ${item.length}m</td>
+          <td class="px-4 py-2 text-center text-amber-400 font-bold">${item.count}</td>
+          <td class="px-4 py-2 text-right text-emerald-400">${item.totalArea.toFixed(1)} m²</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const occupancy = factoryTotalArea > 0 ? (totalUsedArea / factoryTotalArea) * 100 : 0;
+      document.getElementById('summaryTotalFactoryArea').textContent = `${factoryTotalArea.toLocaleString()} m²`;
+      document.getElementById('summaryUsedArea').textContent = `${totalUsedArea.toFixed(1)} m²`;
+      document.getElementById('summaryOccupancyRate').textContent = `${occupancy.toFixed(1)} %`;
+    }
+
+    document.getElementById('btnExportPNG').addEventListener('click', () => {
+      const exportCanvas = document.createElement('canvas');
+      const eCtx = exportCanvas.getContext('2d');
+
+      const scale = 20; // 20px per meter for export image
+      const fwPx = factoryConfig.width * scale;
+      const flPx = factoryConfig.length * scale;
+      const legendHeight = 160;
+
+      exportCanvas.width = Math.min(8000, fwPx);
+      exportCanvas.height = Math.min(8000, flPx + legendHeight);
+
+      eCtx.fillStyle = "#090d16";
+      eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+      eCtx.fillStyle = "#0f172a";
+      eCtx.fillRect(0, 0, fwPx, flPx);
+
+      machines.forEach(m => {
+        const xPx = m.x * scale;
+        const yPx = m.y * scale;
+        const wPx = m.width * scale;
+        const lPx = m.length * scale;
+
+        eCtx.save();
+        eCtx.translate(xPx + wPx / 2, yPx + lPx / 2);
+        eCtx.rotate((m.rotation || 0) * Math.PI / 180);
+
+        if (m.isZone) {
+          eCtx.fillStyle = (m.color || "#10b981") + "33";
+          eCtx.fillRect(-wPx / 2, -lPx / 2, wPx, lPx);
+          eCtx.strokeStyle = m.color || "#10b981";
+          eCtx.lineWidth = 3;
+          eCtx.setLineDash([8, 6]);
+          eCtx.strokeRect(-wPx / 2, -lPx / 2, wPx, lPx);
+        } else {
+          eCtx.fillStyle = m.color || "#3b82f6";
+          eCtx.fillRect(-wPx / 2, -lPx / 2, wPx, lPx);
+          eCtx.strokeStyle = "#ffffff";
+          eCtx.lineWidth = 2;
+          eCtx.strokeRect(-wPx / 2, -lPx / 2, wPx, lPx);
+        }
+
+        eCtx.fillStyle = "#ffffff";
+        eCtx.font = "14px Kanit, sans-serif";
+        eCtx.textAlign = "center";
+        eCtx.fillText(m.label, 0, 0);
+
+        eCtx.restore();
+      });
+
+      eCtx.fillStyle = "#1e293b";
+      eCtx.fillRect(0, flPx, fwPx, legendHeight);
+
+      eCtx.fillStyle = "#f59e0b";
+      eCtx.font = "bold 18px Kanit, sans-serif";
+      eCtx.fillText(`ผังโรงงาน (Factory Layout) - ห้อง: ${currentRoomId}`, 20, flPx + 35);
+
+      eCtx.fillStyle = "#94a3b8";
+      eCtx.font = "14px Kanit, sans-serif";
+      eCtx.fillText(`ขนาดรวม: ${factoryConfig.width}m × ${factoryConfig.length}m | รูปทรง: ${factoryConfig.shape} | อุปกรณ์ทั้งหมด: ${machines.length} ชิ้น`, 20, flPx + 65);
+
+      const link = document.createElement('a');
+      link.download = `Factory_Layout_${currentRoomId}.png`;
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+
+      showToast('ส่งออกไฟล์ PNG เรียบร้อย', 'success');
+    });
+
+    document.getElementById('btnExportJSON').addEventListener('click', () => {
+      const payload = {
+        roomId: currentRoomId,
+        exportedAt: new Date().toISOString(),
+        factory: factoryConfig,
+        machines: machines
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.download = `Factory_Layout_${currentRoomId}.json`;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+
+      showToast('บันทึกไฟล์ JSON เรียบร้อย', 'success');
+    });
+
+    document.getElementById('inputImportJSON').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (imported.factory) factoryConfig = imported.factory;
+          if (imported.machines) machines = imported.machines;
+
+          renderCanvas();
+          updateInspectorPanel();
+          updateInventorySummary();
+          saveRoomStateToFirebase();
+          showToast('โหลดข้อมูลจาก JSON สำเร็จ', 'success');
+        } catch (err) {
+          showToast('รูปแบบไฟล์ JSON ไม่ถูกต้อง', 'error');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('btnCopyCode').addEventListener('click', () => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(currentRoomId);
+      }
+      showToast(`คัดลอกรหัสห้อง ${currentRoomId} แล้ว`, 'success');
+    });
+
+    document.getElementById('btnCopyLink').addEventListener('click', () => {
+      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      }
+      showToast('คัดลอกลิงก์เชิญเพื่อนเรียบร้อย', 'success');
+    });
+
+    const modalRoom = document.getElementById('modalRoom');
+    document.getElementById('btnSwitchRoom').addEventListener('click', () => modalRoom.classList.remove('hidden'));
+    document.getElementById('btnCloseRoomModal').addEventListener('click', () => modalRoom.classList.add('hidden'));
+
+    document.getElementById('btnSubmitJoinRoom').addEventListener('click', () => {
+      const code = document.getElementById('inputJoinRoomCode').value.trim().toUpperCase();
+      if (code) {
+        currentRoomId = code;
+        document.getElementById('currentRoomDisplay').textContent = currentRoomId;
+        listenToRoomChanges(currentRoomId);
+        modalRoom.classList.add('hidden');
+        showToast(`สลับไปยังห้อง ${currentRoomId} แล้ว`, 'info');
+      }
+    });
+
+    document.getElementById('btnCreateNewRoom').addEventListener('click', () => {
+      currentRoomId = `ROOM-${Math.floor(1000 + Math.random() * 9000)}`;
+      document.getElementById('currentRoomDisplay').textContent = currentRoomId;
+      machines = [];
+      listenToRoomChanges(currentRoomId);
+      modalRoom.classList.add('hidden');
+      showToast(`สร้างห้องใหม่ ${currentRoomId} เรียบร้อย`, 'success');
+    });
+
+    const modalCustom = document.getElementById('modalCustomMachine');
+    document.getElementById('btnCreateCustomMachine').addEventListener('click', () => modalCustom.classList.remove('hidden'));
+    document.getElementById('btnCloseCustomMachineModal').addEventListener('click', () => modalCustom.classList.add('hidden'));
+    document.getElementById('btnCancelCustomMachine').addEventListener('click', () => modalCustom.classList.add('hidden'));
+
+    document.getElementById('btnSaveCustomMachine').addEventListener('click', () => {
+      const name = document.getElementById('customName').value.trim();
+      if (!name) {
+        showToast('กรุณาระบุชื่อเครื่องจักร', 'warning');
+        return;
+      }
+
+      const customItem = {
+        id: `custom_${Date.now()}`,
+        label: name,
+        category: document.getElementById('customCategory').value,
+        width: parseFloat(document.getElementById('customW').value) || 2.0,
+        length: parseFloat(document.getElementById('customL').value) || 2.0,
+        color: document.getElementById('customColor').value,
+        icon: document.getElementById('customIcon').value || 'fa-gear'
+      };
+
+      customPresets.push(customItem);
+      renderLibrary();
+      modalCustom.classList.add('hidden');
+      showToast(`เพิ่ม "${name}" ในคลังสำเร็จ`, 'success');
+    });
+
+    const modalInventory = document.getElementById('modalInventory');
+    document.getElementById('btnInventoryModal').addEventListener('click', () => {
+      updateInventorySummary();
+      modalInventory.classList.remove('hidden');
+    });
+    document.getElementById('btnCloseInventoryModal').addEventListener('click', () => modalInventory.classList.add('hidden'));
+    document.getElementById('btnCloseInventoryModalBottom').addEventListener('click', () => modalInventory.classList.add('hidden'));
+
+    function toggleCustomShapeControls(show) {
+      const group = document.getElementById('customShapeControlGroup');
+      if (show) group.classList.remove('hidden');
+      else group.classList.add('hidden');
+    }
+
+    document.getElementById('factoryShapeInput').addEventListener('change', (e) => {
+      toggleCustomShapeControls(e.target.value === 'custom');
+    });
+
+    document.getElementById('btnStartDrawCustom').addEventListener('click', () => {
+      isDrawingCustomFactory = true;
+      factoryConfig.shape = 'custom';
+      factoryConfig.customPoints = [];
+      document.getElementById('customDrawToolbar').classList.remove('hidden');
+      showToast('เริ่มโหมดวาดรูปทรงโรงงาน: คลิกจุดบน Canvas', 'info');
+      renderCanvas();
+    });
+
+    document.getElementById('btnCustomDrawFinish').addEventListener('click', () => {
+      isDrawingCustomFactory = false;
+      document.getElementById('customDrawToolbar').classList.add('hidden');
+      showToast('บันทึกรูปทรงโรงงานแบบวาดเองเรียบร้อย', 'success');
+      renderCanvas();
+      saveRoomStateToFirebase();
+    });
+
+    document.getElementById('btnCustomDrawUndo').addEventListener('click', () => {
+      if (factoryConfig.customPoints && factoryConfig.customPoints.length > 0) {
+        factoryConfig.customPoints.pop();
+        renderCanvas();
+      }
+    });
+
+    document.getElementById('btnCustomDrawClear').addEventListener('click', () => {
+      factoryConfig.customPoints = [];
+      renderCanvas();
+    });
+
+    document.getElementById('btnApplyFactorySetup').addEventListener('click', () => {
+      factoryConfig.width = parseInt(document.getElementById('factoryWidthInput').value) || 100;
+      factoryConfig.length = parseInt(document.getElementById('factoryLengthInput').value) || 200;
+      factoryConfig.shape = document.getElementById('factoryShapeInput').value;
+
+      renderCanvas();
+      updateInventorySummary();
+      saveRoomStateToFirebase();
+      showToast('อัปเดตขนาดและรูปทรงโรงงานเรียบร้อย', 'success');
+    });
+
+    const leftSidebar = document.getElementById('leftSidebar');
+    const leftSidebarIcon = document.getElementById('leftSidebarIcon');
+    document.getElementById('toggleLeftSidebar').addEventListener('click', () => {
+      leftSidebar.classList.toggle('-ml-80');
+      leftSidebarIcon.classList.toggle('rotate-180');
+    });
+
+    const rightSidebar = document.getElementById('rightSidebar');
+    const rightSidebarIcon = document.getElementById('rightSidebarIcon');
+    document.getElementById('toggleRightSidebar').addEventListener('click', () => {
+      rightSidebar.classList.toggle('-mr-80');
+      rightSidebarIcon.classList.toggle('rotate-180');
+    });
+
+    document.getElementById('tabInspector').addEventListener('click', () => {
+      document.getElementById('inspectorTabContent').classList.remove('hidden');
+      document.getElementById('factorySetupTabContent').classList.add('hidden');
+      document.getElementById('tabInspector').className = "flex-1 py-3 text-xs font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center justify-center gap-1.5 transition";
+      document.getElementById('tabFactorySetup').className = "flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition";
+    });
+
+    document.getElementById('tabFactorySetup').addEventListener('click', () => {
+      document.getElementById('factorySetupTabContent').classList.remove('hidden');
+      document.getElementById('inspectorTabContent').classList.add('hidden');
+      document.getElementById('tabFactorySetup').className = "flex-1 py-3 text-xs font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center justify-center gap-1.5 transition";
+      document.getElementById('tabInspector').className = "flex-1 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition";
+    });
+
+    document.getElementById('gridSnapSelect').addEventListener('change', (e) => {
+      gridSnapMeters = parseFloat(e.target.value);
+    });
+
+    document.getElementById('btnToggleRulers').addEventListener('click', () => {
+      showRulers = !showRulers;
+      renderCanvas();
+    });
+
+    // Smart Zoom Button Control Logic
+    document.getElementById('btnZoomIn').addEventListener('click', () => {
+      if (zoomLevel < 0.1) zoomLevel += 0.02;
+      else if (zoomLevel < 0.5) zoomLevel += 0.1;
+      else zoomLevel = Math.min(5.0, zoomLevel + 0.2);
+      
+      zoomLevel = Math.round(zoomLevel * 100) / 100;
+      document.getElementById('zoomLevelDisplay').textContent = `${Math.round(zoomLevel * 100)}%`;
+      renderCanvas();
+    });
+
+    document.getElementById('btnZoomOut').addEventListener('click', () => {
+      if (zoomLevel > 0.5) zoomLevel -= 0.2;
+      else if (zoomLevel > 0.1) zoomLevel -= 0.05;
+      else zoomLevel = Math.max(0.01, zoomLevel - 0.01);
+
+      zoomLevel = Math.round(zoomLevel * 100) / 100;
+      document.getElementById('zoomLevelDisplay').textContent = `${Math.round(zoomLevel * 100)}%`;
+      renderCanvas();
+    });
+
+    document.getElementById('btnResetView').addEventListener('click', () => {
+      // Auto fit zoom depending on factory size
+      if (factoryConfig.length > 500) zoomLevel = 0.05;
+      else if (factoryConfig.length > 100) zoomLevel = 0.2;
+      else zoomLevel = 1.0;
+
+      panX = 40;
+      panY = 40;
+      document.getElementById('zoomLevelDisplay').textContent = `${Math.round(zoomLevel * 100)}%`;
+      renderCanvas();
+    });
+
+    document.getElementById('btnClearCanvas').addEventListener('click', () => {
+      machines = [];
+      selectedMachineId = null;
+      updateInspectorPanel();
+      updateInventorySummary();
+      renderCanvas();
+      saveRoomStateToFirebase();
+      showToast('ล้างผังเครื่องจักรทั้งหมดแล้ว', 'warning');
+    });
+
+    document.getElementById('btnShortcutsHelp').addEventListener('click', () => {
+      showToast('ใช้นิ้วปัด/ปุ่มลูกศรเพื่อเลื่อนหน้าจอ, กด - / + เพื่อย่อขยายดูโรงงานขนาดใหญ่', 'info');
+    });
+
+    window.onload = () => {
+      resizeCanvas();
+      renderLibrary();
+      initAuthAndRoom();
+      updateInventorySummary();
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</body>
+</html>
